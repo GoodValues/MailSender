@@ -1,11 +1,14 @@
 package com.magicsender.spring.data.cassandra.controller;
 
 import com.datastax.driver.core.utils.UUIDs;
+import com.magicsender.spring.data.cassandra.config.EmailCfg;
 import com.magicsender.spring.data.cassandra.model.Message;
 import com.magicsender.spring.data.cassandra.repository.MessageRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSenderImpl;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -23,6 +26,9 @@ public class MessageController {
 
     @Autowired
     MessageRepository messageRepository;
+
+    @Autowired
+    EmailCfg emailCfg;
 
     @GetMapping("/messages")
     public ResponseEntity<List<Message>> getAllMessages() {
@@ -43,10 +49,35 @@ public class MessageController {
     @DeleteMapping("/send")
     public ResponseEntity<HttpStatus> sendAllMassagesWithMagicNumber(@RequestParam("magicnumber") Integer magicnumber) {
         List<Message> messagesWithMagicNum = messageRepository.findByMagicnumber(magicnumber);
+        // Create a mail sender
+        JavaMailSenderImpl mailSender = getJavaMailSender();
         for (Message message : messagesWithMagicNum) {
+            // Create an email instance
+            SimpleMailMessage mailMessage = getSimpleMailMessage(message);
+            // Send mail
+            mailSender.send(mailMessage);
             messageRepository.deleteById(message.getId());
         }
+
         return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+    private JavaMailSenderImpl getJavaMailSender() {
+        JavaMailSenderImpl mailSender = new JavaMailSenderImpl();
+        mailSender.setHost(this.emailCfg.getHost());
+        mailSender.setPort(this.emailCfg.getPort());
+        mailSender.setUsername(this.emailCfg.getUsername());
+        mailSender.setPassword(this.emailCfg.getPassword());
+        return mailSender;
+    }
+
+    private SimpleMailMessage getSimpleMailMessage(Message message) {
+        SimpleMailMessage mailMessage = new SimpleMailMessage();
+        mailMessage.setFrom("Adam");
+        mailMessage.setTo(message.getEmail());
+        mailMessage.setSubject(message.getTitle());
+        mailMessage.setText(message.getContent());
+        return mailMessage;
     }
 }
 
