@@ -1,0 +1,27 @@
+version: '3.1'
+services:
+  spring-boot:
+    ports:
+      - "8080:8080"
+    build:
+      context: .
+      args:
+        JAR_FILE: /spring-boot.jar
+    restart: always
+
+#    image: spring-boot:1
+#    build:
+#      context: ./
+#      dockerfile: Dockerfile
+#    volumes:
+#      - /data/spring-boot
+#    ports:
+#      - "8080:8080"
+#    restart: always
+
+  mycassandra:
+    image: cassandra
+    container_name: cassandradb
+    ports:
+      - "9042:9042"
+
